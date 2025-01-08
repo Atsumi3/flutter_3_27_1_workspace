@@ -6,8 +6,13 @@ on:
 env:
   # Android: packageName, iOS: bundleIdentifier
   PACKAGE_ID: any.example.app.id
-  # jks path.
-  ANDROID_KEYSTORE_DIST_PATH: android/app/release.keystore
+
+# このActionsで必要なSecretsは以下の通りです
+# - PLAY_STORE_CREDENTIALS_BASE64: Google Play Console 用のサービスアカウントキー (base64 encode)
+# - KEYSTORE_BASE64: keystore.jks (base64 encode)
+# - KEYSTORE_PASSWORD: keystore.jks のパスワード
+# - KEY_ALIAS: keystore.jks のエイリアス
+# - KEY_PASSWORD: keystore.jks のエイリアスのパスワード
 
 jobs:
   deploy_store_google_play:
@@ -17,21 +22,39 @@ jobs:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-flutter-env
 
+      # アプリのビルドに利用する証明書を設定します。
       - name: Setup Certificates
         working-directory: packages/app
         run: |
           echo "add $ to before { to avoid secrets scanning."
-          # echo "{{ secrets.KEYSTORE_BASE64 }}" | base64 -d > ${{ env.ANDROID_KEYSTORE_DIST_PATH }}
+          mkdir -p $HOME/keystores
+          # echo "{{ secrets.KEYSTORE_BASE64 }}" | base64 -d > $HOME/keystores/release.keystore
           # echo "{{ secrets.PLAY_STORE_CREDENTIALS_BASE64 }}" | base64 -d > service_account.json
 
+      # アプリのビルド
+      # envの設定名はsigningConfig.gradle等の名前と合わせる
+      # 
+      # イメージ
+      # signingConfigs {
+      #     production {
+      #       storeFile file(System.getenv("HOME") + "/keystores/release.keystore")
+      #       storePassword System.getenv('KEYSTORE_PASSWORD')
+      #       keyAlias System.getenv('KEY_ALIAS')
+      #       keyPassword System.getenv('KEY_PASSWORD')
+      #   }
+      # }
       - name: Build
         working-directory: packages/app
         id: build
+        # env:
+        #   KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+        #   KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+        #   KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: flutter build apk --release --no-tree-shake-icons
       
       - name: Find Binary
         id: binary_path
-        run: echo "::set-output name=binary_path::$(find . -name 'app-release.apk')"
+        run: echo "binary_path=$(find . -name '*.apk' | grep 'flutter-apk')" >> $GITHUB_OUTPUT
       
       - name: Check Binary Path
         run: |

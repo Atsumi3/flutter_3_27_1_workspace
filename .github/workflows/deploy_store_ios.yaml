@@ -9,6 +9,14 @@ env:
   # Provisioning Profile を保存するディレクトリのパス。固定
   PP_DIST_PATH: ~/Library/MobileDevice/Provisioning\ Profiles
 
+# このActionsで必要なSecretsは以下の通りです
+# - APPSTORE_KEY_CONTENT: p8 ファイルの内容
+# - APPSTORE_KEY_ID: Key ID
+# - APPSTORE_ISSUER_ID: Issuer ID
+# - PP_APPSTORE_BASE64: App Store 用の Provisioning Profile (base64 encode)
+# - P12_BASE64: ios_distribution.p12 (base64 encode)
+# - P12_PASSWORD: p12 ファイルのパスワード
+
 jobs:
   deploy_store_play_store:
     runs-on: macos-latest
@@ -24,33 +32,27 @@ jobs:
           mkdir -p ${{ env.PP_DIST_PATH }}
 
           # "add $ to before { to avoid secrets scanning."
-          # echo -n {{ secrets.PP_APPSTORE_BASE64 }} | base64 -d > ${{ env.PP_DIST_PATH }}/appstore.mobileprovision
+          # echo -n ${{ secrets.PP_APPSTORE_BASE64 }} | base64 -d > ${{ env.PP_DIST_PATH }}/app.mobileprovision
 
           # example: if you have multiple provisioning profiles, add them all.
-          # echo -n {{ secrets.PP_APPSTORE_NOTIFICATION_SERVICES_BASE64 }} | base64 -d > ${{ env.PP_DIST_PATH }}/notification_services.mobileprovision
+          # echo -n ${{ secrets.PP_APPSTORE_NOTIFICATION_SERVICES_BASE64 }} | base64 -d > ${{ env.PP_DIST_PATH }}/notification_services.mobileprovision
 
       # アプリのビルドに利用する証明書を設定します。
-      # リリースなので ios_distribution.p8 を利用します。
       # - name: Install Certificates
       #   uses: Apple-Actions/import-codesign-certs@master
       #   with:
-      #     p12-file-base64: ${{ secrets.IOS_P12_BASE64 }}
-      #     p12-password: ${{ secrets.IOS_P12_PASSWORD }}
+      #     p12-file-base64: ${{ secrets.P12_BASE64 }}
+      #     p12-password: ${{ secrets.P12_PASSWORD }}
 
+      # ExportOptions.plist を利用することをおすすめします。
       - name: Build
         working-directory: packages/app
         id: build
-        run: |
-          # flutter build ios--release --export-options-plist=ios/Runner/ExportOptions.plist --no-tree-shake-icons
-          flutter build ipa --no-tree-shake-icons --no-codesign
+        run: flutter build ipa --release --export-options-plist=ios/Runner/ExportOptions.plist --no-tree-shake-icons
       
       - name: Find Binary
         id: binary_path
-        run: echo "::set-output name=binary_path::$(find . -name '*.app')"
-      
-      - name: Check Binary Path
-        run: |
-          echo ${{ steps.build.outputs.binary_path }}
+        run: echo "binary_path=$(find . -name '*.ipa')" >> $GITHUB_OUTPUT
 
       # App Store にアップロードします。
       # 必要な情報は以下の通りです。
@@ -63,4 +65,4 @@ jobs:
 
       #     # "add $ to before { to avoid secrets scanning."
       #     echo "${{ secrets.APPSTORE_KEY_CONTENT }}" > ./private_keys/AuthKey_${{ secrets.APPSTORE_KEY_ID }}.p8
-      #     xcrun altool --upload-app --type ios -f ${{ steps.build.outputs.ipa_path }} --apiKey ${{ secrets.APPSTORE_KEY_ID }} --apiIssuer ${{ secrets.APPSTORE_ISSUER_ID }}
+      #     xcrun altool --upload-app --type ios -f ${{ steps.build.outputs.binary_path }} --apiKey ${{ secrets.APPSTORE_KEY_ID }} --apiIssuer ${{ secrets.APPSTORE_ISSUER_ID }}
