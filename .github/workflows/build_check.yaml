@@ -1,0 +1,13 @@
+name: Build Check
+
+on:
+  workflow_dispatch:
+
+jobs:
+  run_web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-flutter-env
+      - name: Build Web (WASM)
+        run: fvm flutter build web --wasm

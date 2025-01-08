@@ -1,0 +1,28 @@
+name: Setup Flutter Env
+description: "Setup Flutter Env"
+
+runs:
+  using: composite
+  steps:
+    #----Setup IDE START----
+    - uses: maxim-lobanov/setup-xcode@v1
+      if: runner.os == 'macOS'
+      with:
+        xcode-version: "16.0"
+
+    - name: Set up JDK 17
+      if: runner.os == 'Linux'
+      uses: actions/setup-java@main
+      with:
+        java-version: '17'
+        distribution: 'adopt'
+        cache: 'gradle'
+    #----Setup IDE END----
+
+    - uses: kuhnroyal/flutter-fvm-config-action@v2
+      id: fvm-config-action
+
+    - uses: subosito/flutter-action@main
+      with:
+        flutter-version: ${{ steps.fvm-config-action.outputs.FLUTTER_VERSION }}
+        cache: true
