@@ -7,6 +7,9 @@ env:
   # [固定] Provisioning Profile を保存するディレクトリのパス
   PP_DIST_PATH: ~/Library/MobileDevice/Provisioning\ Profiles
 
+  # Firebase AppDistribution で配信するグループ名
+  DISTRIBUTION_GROUPS: internal_tester
+
   # Crashlytics にシンボルをアップロードするかどうか。 Podfile に Firebase/Crashlytics が追加されている必要があります。
   SEND_SYMBOLS_TO_CRASHLYTICS: true
 
@@ -69,5 +72,5 @@ jobs:
         with:
           appId: ${{ secrets.FIREBASE_APP_ID_IOS_PRODUCTION }}
           serviceCredentialsFileContent: ${{ secrets.CREDENTIAL_FILE_CONTENT }}
-          groups: internal_tester
+          groups: ${{ env.DISTRIBUTION_GROUPS }}
           file: ${{ steps.build.outputs.binary_path }}
