@@ -1,0 +1,14 @@
+name: flutter_workspace_practice
+
+publish_to: none
+
+environment:
+  sdk: ^3.6.0
+
+workspace:
+  - packages/app
+  - packages/components
+  - packages/core
+
+dev_dependencies: 
+  very_good_analysis:

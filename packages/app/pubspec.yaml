@@ -1,0 +1,15 @@
+name: app
+publish_to: none
+resolution: workspace
+
+environment:
+  sdk: ^3.6.0
+
+dependencies:
+  components:
+  core:
+
+  flutter:
+    sdk: flutter
+
+  random_name_generator: ^1.5.0
