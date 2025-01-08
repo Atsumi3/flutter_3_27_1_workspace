@@ -9,5 +9,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-flutter-env
+      - name: Run Test
+        working-directory: packages/app
+        run: fvm flutter test
       - name: Build Web (WASM)
+        working-directory: packages/app
         run: fvm flutter build web --wasm

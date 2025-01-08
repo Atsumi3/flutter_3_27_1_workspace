@@ -3,7 +3,6 @@ import 'dart:math';
 import 'package:components/components.dart';
 import 'package:core/core.dart';
 import 'package:flutter/material.dart';
-import 'package:random_name_generator/random_name_generator.dart';
 
 class TopPage extends StatefulWidget {
   const TopPage({super.key});
@@ -20,7 +19,7 @@ class _TopPageState extends State<TopPage> {
     super.initState();
 
     for (var i = 0; i < 10; i++) {
-      final randomName = RandomNames(Zone.japan).fullName();
+      final randomName = "Tanaka No.${i}";
       final randomAge = Random().nextInt(100);
       _humans.add(Human(randomName, randomAge));
     }
