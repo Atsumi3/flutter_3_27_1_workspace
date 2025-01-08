@@ -1,0 +1,45 @@
+name: Deploy to Store (Google)
+
+on:
+  workflow_dispatch:
+
+env:
+  # Android: packageName, iOS: bundleIdentifier
+  PACKAGE_ID: any.example.app.id
+  # jks path.
+  ANDROID_KEYSTORE_DIST_PATH: android/app/release.keystore
+
+jobs:
+  deploy_store_google_play:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-flutter-env
+
+      - name: Setup Certificates
+        working-directory: packages/app
+        run: |
+          echo "add $ to before { to avoid secrets scanning."
+          # echo "{{ secrets.KEYSTORE_BASE64 }}" | base64 -d > ${{ env.ANDROID_KEYSTORE_DIST_PATH }}
+          # echo "{{ secrets.PLAY_STORE_CREDENTIALS_BASE64 }}" | base64 -d > service_account.json
+
+      - name: Build
+        working-directory: packages/app
+        id: build
+        run: |
+          flutter build apk --release --no-tree-shake-icons
+          echo "::set-output name=apk_path::$(find . -name 'app-release.apk')"
+      
+      - name: Check File Path
+        run: |
+          echo ${{ steps.build.outputs.apk_path }}
+
+      # - name: Deploy to Store
+      #   uses: r0adkll/upload-google-play@v1
+      #   with:
+      #     serviceAccountJson: ./service_account.json
+      #     packageName: ${{ env.PACKAGE_ID }}
+      #     releaseFiles: ${{ steps.build.outputs.apk_path }}
+      #     track: internal
+      #     status: completed

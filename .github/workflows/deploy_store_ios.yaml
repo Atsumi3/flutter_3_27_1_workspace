@@ -1,0 +1,63 @@
+name: Deploy to Store (Apple)
+
+on:
+  workflow_dispatch:
+
+env:
+  # Android: packageName, iOS: bundleIdentifier
+  PACKAGE_ID: any.example.app.id
+  # Provisioning Profile を保存するディレクトリのパス。固定
+  PP_DIST_PATH: ~/Library/MobileDevice/Provisioning\ Profiles
+
+jobs:
+  deploy_store_play_store:
+    runs-on: macos-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-flutter-env
+
+      # アプリのビルドに利用するプロビジョニングプロファイルを設定します。
+      # 複数ある場合はファイル名を変えて保存します。app, notification_services など。
+      - name: Setup Provisioning Profiles
+        run: |
+          mkdir -p ${{ env.PP_DIST_PATH }}
+
+          # "add $ to before { to avoid secrets scanning."
+          # echo -n {{ secrets.PP_APPSTORE_BASE64 }} | base64 -d > ${{ env.PP_DIST_PATH }}/appstore.mobileprovision
+
+          # example: if you have multiple provisioning profiles, add them all.
+          # echo -n {{ secrets.PP_APPSTORE_NOTIFICATION_SERVICES_BASE64 }} | base64 -d > ${{ env.PP_DIST_PATH }}/notification_services.mobileprovision
+
+      # アプリのビルドに利用する証明書を設定します。
+      # リリースなので ios_distribution.p8 を利用します。
+      # - name: Install Certificates
+      #   uses: Apple-Actions/import-codesign-certs@master
+      #   with:
+      #     p12-file-base64: ${{ secrets.IOS_P12_BASE64 }}
+      #     p12-password: ${{ secrets.IOS_P12_PASSWORD }}
+
+      - name: Build
+        working-directory: packages/app
+        id: build
+        run: |
+          # flutter build ios--release --export-options-plist=ios/Runner/ExportOptions.plist --no-tree-shake-icons
+          flutter build ios --no-tree-shake-icons --no-codesign
+          echo "::set-output name=ipa_path::$(find . -name '*.ipa')"
+      
+      - name: Check File Path
+        run: |
+          echo ${{ steps.build.outputs.ipa_path }}
+
+      # App Store にアップロードします。
+      # 必要な情報は以下の通りです。
+      # - APPSTORE_KEY_CONTENT: p8 ファイルの内容
+      # - APPSTORE_KEY_ID: Key ID
+      # - APPSTORE_ISSUER_ID: Issuer ID
+      # - name: Deploy to Store
+      #   run: |
+      #     mkdir ./private_keys
+
+      #     # "add $ to before { to avoid secrets scanning."
+      #     echo "${{ secrets.APPSTORE_KEY_CONTENT }}" > ./private_keys/AuthKey_${{ secrets.APPSTORE_KEY_ID }}.p8
+      #     xcrun altool --upload-app --type ios -f ${{ steps.build.outputs.ipa_path }} --apiKey ${{ secrets.APPSTORE_KEY_ID }} --apiIssuer ${{ secrets.APPSTORE_ISSUER_ID }}
