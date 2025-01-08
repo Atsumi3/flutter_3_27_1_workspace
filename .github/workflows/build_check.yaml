@@ -6,12 +6,30 @@ on:
 jobs:
   run_web:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-flutter-env
-      - name: Run Test
-        working-directory: packages/app
-        run: fvm flutter test
       - name: Build Web (WASM)
         working-directory: packages/app
-        run: fvm flutter build web --wasm
+        run: flutter build web --wasm
+
+  run_android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-flutter-env
+      - name: Build Android
+        working-directory: packages/app
+        run: flutter build apk --no-tree-shake-icons
+
+  run_ios:
+    runs-on: macos-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-flutter-env
+      - name: Build iOS
+        working-directory: packages/app
+        run: flutter build ios --no-tree-shake-icons --no-codesign

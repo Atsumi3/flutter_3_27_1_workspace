@@ -1,0 +1,14 @@
+name: Run Test
+
+on:
+  workflow_dispatch:
+
+jobs:
+  run_test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-flutter-env
+      - name: Run Test
+        working-directory: packages/app
+        run: flutter test
