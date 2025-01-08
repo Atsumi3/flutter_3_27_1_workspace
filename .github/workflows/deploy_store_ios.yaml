@@ -42,12 +42,15 @@ jobs:
         id: build
         run: |
           # flutter build ios--release --export-options-plist=ios/Runner/ExportOptions.plist --no-tree-shake-icons
-          flutter build ios --no-tree-shake-icons --no-codesign
-          echo "::set-output name=ipa_path::$(find . -name '*.ipa')"
+          flutter build ipa --no-tree-shake-icons --no-codesign
       
-      - name: Check File Path
+      - name: Find Binary
+        id: binary_path
+        run: echo "::set-output name=binary_path::$(find . -name '*.app')"
+      
+      - name: Check Binary Path
         run: |
-          echo ${{ steps.build.outputs.ipa_path }}
+          echo ${{ steps.build.outputs.binary_path }}
 
       # App Store にアップロードします。
       # 必要な情報は以下の通りです。

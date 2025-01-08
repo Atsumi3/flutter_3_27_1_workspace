@@ -27,19 +27,21 @@ jobs:
       - name: Build
         working-directory: packages/app
         id: build
-        run: |
-          flutter build apk --release --no-tree-shake-icons
-          echo "::set-output name=apk_path::$(find . -name 'app-release.apk')"
+        run: flutter build apk --release --no-tree-shake-icons
       
-      - name: Check File Path
+      - name: Find Binary
+        id: binary_path
+        run: echo "::set-output name=binary_path::$(find . -name 'app-release.apk')"
+      
+      - name: Check Binary Path
         run: |
-          echo ${{ steps.build.outputs.apk_path }}
+          echo ${{ steps.build.outputs.binary_path }}
 
       # - name: Deploy to Store
       #   uses: r0adkll/upload-google-play@v1
       #   with:
       #     serviceAccountJson: ./service_account.json
       #     packageName: ${{ env.PACKAGE_ID }}
-      #     releaseFiles: ${{ steps.build.outputs.apk_path }}
+      #     releaseFiles: ${{ steps.build.outputs.binary_path }}
       #     track: internal
       #     status: completed
