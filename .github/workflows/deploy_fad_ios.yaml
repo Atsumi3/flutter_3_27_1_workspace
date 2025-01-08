@@ -1,4 +1,4 @@
-name: Deploy to AppStore
+name:  App Distribution (Android)
 
 on:
   workflow_dispatch:
@@ -11,12 +11,11 @@ env:
   SEND_SYMBOLS_TO_CRASHLYTICS: true
 
 # このActionsで必要なSecretsは以下の通りです
-# - APPSTORE_KEY_CONTENT: p8 ファイルの内容
-# - APPSTORE_KEY_ID: Key ID
-# - APPSTORE_ISSUER_ID: Issuer ID
-# - PP_APPSTORE_BASE64: App Store 用の Provisioning Profile (base64 encode)
+# - PP_ADHOC_BASE64: AdHoc 用の Provisioning Profile (base64 encode)
 # - P12_BASE64: ios_distribution.p12 (base64 encode)
 # - P12_PASSWORD: p12 ファイルのパスワード
+# - FIREBASE_APP_ID_IOS_PRODUCTION: Firebase App ID (Production)
+# - CREDENTIAL_FILE_CONTENT: Firebase App Distribution 用のサービスアカウントキー
 
 jobs:
   deploy_store_app_store:
@@ -32,7 +31,7 @@ jobs:
         run: |
           mkdir -p ${{ env.PP_DIST_PATH }}
 
-          echo -n ${{ secrets.PP_APPSTORE_BASE64 }} | base64 -d > ${{ env.PP_DIST_PATH }}/app.mobileprovision
+          echo -n ${{ secrets.PP_ADHOC_BASE64 }} | base64 -d > ${{ env.PP_DIST_PATH }}/app.mobileprovision
 
           # example: if you have multiple provisioning profiles, add them all.
           # echo -n ${{ secrets.PP_APPSTORE_NOTIFICATION_SERVICES_BASE64 }} | base64 -d > ${{ env.PP_DIST_PATH }}/notification_services.mobileprovision
@@ -63,13 +62,12 @@ jobs:
           DSYM_FILE_PATH=$(find . -name '*.app.dSYM')
           ./ios/Pods/FirebaseCrashlytics/upload-symbols -gsp $GOOGLE_SERVICE_INFO_PATH -p ios $DSYM_FILE_PATH
 
-      # App Store にアップロードします。
-      # 必要な情報は以下の通りです。
-      # - APPSTORE_KEY_CONTENT: p8 ファイルの内容
-      # - APPSTORE_KEY_ID: Key ID
-      # - APPSTORE_ISSUER_ID: Issuer ID
-      - name: Deploy to Store
-        run: |
-          mkdir ./private_keys
-          echo "${{ secrets.APPSTORE_KEY_CONTENT }}" > ./private_keys/AuthKey_${{ secrets.APPSTORE_KEY_ID }}.p8
-          xcrun altool --upload-app --type ios -f ${{ steps.build.outputs.binary_path }} --apiKey ${{ secrets.APPSTORE_KEY_ID }} --apiIssuer ${{ secrets.APPSTORE_ISSUER_ID }}
+      # WIP: 動かないがfastlaneは使いたくないので、後で対応する
+      - name: Deploy To Firebase App Distribution
+        if: false
+        uses: wzieba/Firebase-Distribution-Github-Action@v1
+        with:
+          appId: ${{ secrets.FIREBASE_APP_ID_IOS_PRODUCTION }}
+          serviceCredentialsFileContent: ${{ secrets.CREDENTIAL_FILE_CONTENT }}
+          groups: internal_tester
+          file: ${{ steps.build.outputs.binary_path }}

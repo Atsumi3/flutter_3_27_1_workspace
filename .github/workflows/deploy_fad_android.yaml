@@ -1,4 +1,4 @@
-name: Deploy to PlayStore
+name: App Distribution (iOS)
 
 on:
   workflow_dispatch:
@@ -6,15 +6,19 @@ on:
 env:
   # Android: packageName, iOS: bundleIdentifier
   PACKAGE_ID: any.example.app.id
+
+  # Firebase AppDistribution で配信するグループ名
+  DISTRIBUTION_GROUPS: internal_tester
+
   SEND_SYMBOLS_TO_CRASHLYTICS: true
 
 # このActionsで必要なSecretsは以下の通りです
-# - PLAY_STORE_CREDENTIALS_BASE64: Google Play Console 用のサービスアカウントキー (base64 encode)
 # - KEYSTORE_BASE64: keystore.jks (base64 encode)
 # - KEYSTORE_PASSWORD: keystore.jks のパスワード
 # - KEY_ALIAS: keystore.jks のエイリアス
 # - KEY_PASSWORD: keystore.jks のエイリアスのパスワード
 # - FIREBASE_APP_ID_ANDROID_PRODUCTION: Firebase App ID (Production)
+# - CREDENTIAL_FILE_CONTENT: Firebase App Distribution 用のサービスアカウントキー
 
 jobs:
   deploy_store_google_play:
@@ -30,20 +34,7 @@ jobs:
         run: |
           mkdir -p $HOME/keystores
           # echo "{{ secrets.KEYSTORE_BASE64 }}" | base64 -d > $HOME/keystores/release.keystore
-          # echo "{{ secrets.PLAY_STORE_CREDENTIALS_BASE64 }}" | base64 -d > service_account.json
 
-      # アプリのビルド
-      # envの設定名はsigningConfig.gradle等の名前と合わせる
-      # 
-      # イメージ
-      # signingConfigs {
-      #     production {
-      #       storeFile file(System.getenv("HOME") + "/keystores/release.keystore")
-      #       storePassword System.getenv('KEYSTORE_PASSWORD')
-      #       keyAlias System.getenv('KEY_ALIAS')
-      #       keyPassword System.getenv('KEY_PASSWORD')
-      #   }
-      # }
       - name: Build
         working-directory: packages/app
         id: build
@@ -59,7 +50,7 @@ jobs:
       
       # Crashlytics にシンボルをアップロードします。
       - name: Send Symbols to Crashlytics If Need
-        if: ${{ env.SEND_SYMBOLS_TO_CRASHLYTICS }} && secrets.FIREBASE_APP_ID_ANDROID_PRODUCTION 
+        if: ${{ env.SEND_SYMBOLS_TO_CRASHLYTICS }} 
         working-directory: packages/app
         env:
           FIREBASE_APP_ID: ${{ secrets.FIREBASE_APP_ID_ANDROID_PRODUCTION }}
@@ -67,11 +58,10 @@ jobs:
           npm install -g firebase-tools
           firebase crashlytics:symbols:upload --app=$FIREBASE_APP_ID obfuscate/android
 
-      - name: Deploy to Store
-        uses: r0adkll/upload-google-play@v1
+      - name: Deploy To Firebase App Distribution
+        uses: wzieba/Firebase-Distribution-Github-Action@v1
         with:
-          serviceAccountJson: ./service_account.json
-          packageName: ${{ env.PACKAGE_ID }}
-          releaseFiles: ${{ steps.build.outputs.binary_path }}
-          track: internal
-          status: completed
+          appId: ${{ secrets.FIREBASE_APP_ID_ANDROID_PRODUCTION }}
+          serviceCredentialsFileContent: ${{ secrets.CREDENTIAL_FILE_CONTENT }}
+          groups: ${{ env.DISTRIBUTION_GROUPS }}
+          file: ${{ steps.build.outputs.binary_path }}
